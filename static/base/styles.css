@@ -1,0 +1,26 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+}
+
+h1 {
+    color: #1e40af;
+}
+
+.bot-message {
+    background-color: #e0f3ff;
+    color: #1d3557;
+    padding: 10px;
+    border-left: 4px solid #3b82f6;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
+
+.user-message {
+    background-color: #f8f8f8;
+    padding: 10px;
+    border-left: 4px solid #aaa;
+    margin-bottom: 10px;
+    border-radius: 6px;
+}
