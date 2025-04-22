@@ -3,7 +3,7 @@ version: 2.1
 executors:
   python-executor:
     docker:
-      - image: circleci/python:3.9
+      - image: circleci/python:3.10
     environment:
       DJANGO_SECRET_KEY: $DJANGO_SECRET_KEY
       DATABASE_URL: $DATABASE_URL
