@@ -59,12 +59,11 @@ jobs:
   #         command: |
   #           echo "$EC2_PRIVATE_KEY" > private_key.pem
   #           chmod 600 private_key.pem
-  #           ssh -i private_key.pem ec2-user@$EC2_PUBLIC_IP \<< EOF
+  #           ssh -i private_key.pem ec2-user@$EC2_PUBLIC_IP << EOF
   #           # Commands to execute on EC2
   #           docker pull pranay2406/quiz-app:latest
   #           docker run -d -p 8000:8000 pranay2406/quiz-app:latest
   #           EOF
-
 
 workflows:
   version: 2
@@ -74,6 +73,6 @@ workflows:
       - build-and-push:
           requires:
             - test
-      - deploy-to-ec2:
-          requires:
-            - build-and-push
+      # - deploy-to-ec2:
+      #     requires:
+      #       - build-and-push
