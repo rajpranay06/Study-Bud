@@ -1,0 +1,109 @@
+{% extends 'main.html' %}
+
+{% block content %}
+
+<h1>Room: {{ room.name }}</h1>
+
+<div>
+    <h2>Room ID: {{ room.id }}</h2>
+    <h2>Room Name: {{ room.name }}</h2>
+    <h3>Topic: {{ room.topic.name }}</h3>
+</div>
+
+<hr>
+
+<div class="room-container">
+
+    <!-- Left side: Chat and messages -->
+    <div>
+
+        <p>{{ room.description }}</p>
+
+        <div class="chat-box">
+            <h3>Conversation</h3>
+            <hr>
+
+            {% for message in room_messages %}
+                <div class="{% if message.is_bot %}bot-message{% else %}user-message{% endif %}">
+                    <p>
+                        <strong>{% if message.is_bot %}🤖 Bot{% else %}@{{ message.user.username }}{% endif %}</strong>
+                        <small>{{ message.created|timesince }} ago</small>
+                        <br>
+                        {{ message.body }}
+                    </p>
+                    {% if not message.is_bot and request.user == message.user %}
+                        <a href="{% url 'delete-message' message.id %}">Delete</a>
+                    {% endif %}
+                    <hr>
+                </div>
+            {% empty %}
+                <p>No messages yet.</p>
+            {% endfor %}
+        </div>
+
+        <!-- Message input form -->
+        {% if request.user.is_authenticated %}
+            <div class="comment-form">
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="text" name="body" placeholder="Write your message here...">
+                    <button type="submit">Send</button>
+                </form>
+            </div>
+        {% else %}
+            <p><a href="{% url 'login' %}">Login</a> to join the conversation.</p>
+        {% endif %}
+
+    </div>
+
+    <!-- Right side: Participants -->
+    <div>
+        <h3>Participants</h3>
+        <hr>
+        {% for user in participants %}
+            <div>
+                <p>@{{ user.username }}</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+{% endblock %}
+
+<style>
+    .room-container {
+        display: grid;
+        grid-template-columns: 3fr 1fr;
+        gap: 20px;
+    }
+
+    .chat-box {
+        margin-top: 20px;
+    }
+
+    .user-message, .bot-message {
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 10px;
+    }
+
+    .user-message {
+        background-color: #f0f0f0;
+    }
+
+    .bot-message {
+        background-color: #e0f7fa;
+        font-style: italic;
+    }
+
+    .comment-form input[type="text"] {
+        width: 80%;
+        padding: 8px;
+        margin-right: 10px;
+    }
+
+    .comment-form button {
+        padding: 8px 16px;
+    }
+</style>
