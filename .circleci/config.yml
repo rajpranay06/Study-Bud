@@ -1,5 +1,10 @@
 version: 2.1
 
+parameters:
+  GROQ_API_KEY:
+    type: string
+    default: ""
+
 executors:
   python-executor:
     docker:
