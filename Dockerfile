@@ -1,6 +1,12 @@
 # Use an official Python runtime as a parent image
 FROM python:3.10-slim
 
+# Accept build arguments
+ARG GROQ_API_KEY
+
+# Set environment variables
+ENV GROQ_API_KEY=$GROQ_API_KEY
+
 # Set the working directory in the container
 WORKDIR /app
 

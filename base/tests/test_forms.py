@@ -8,14 +8,20 @@ User = get_user_model()
 class FormTests(TestCase):
     def test_user_creation_form_valid(self):
         """Test valid user creation form"""
+        # Using stronger password to pass validation
         form_data = {
             'name': 'Test User',
             'username': 'testuser',
             'email': 'test@example.com',
-            'password1': 'testpassword123',
-            'password2': 'testpassword123'
+            'password1': 'Strong!Password123',
+            'password2': 'Strong!Password123'
         }
         form = MyUserCreationForm(data=form_data)
+        
+        # If form is not valid, print the errors for debugging
+        if not form.is_valid():
+            print(form.errors)
+            
         self.assertTrue(form.is_valid())
         
     def test_user_creation_form_invalid(self):
