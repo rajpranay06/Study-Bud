@@ -19,13 +19,13 @@ class GroqConfigTests(SimpleTestCase):
 class GroqUtilityTests(SimpleTestCase):
     """Tests for GROQ API utility functions"""
     
-    @patch('base.views.client')
-    def test_groq_client_initialization(self, mock_client):
+    @patch('base.views.Groq')
+    def test_groq_client_initialization(self, mock_groq):
         """Test GROQ client can be initialized with settings"""
-        from base.views import client  # This re-imports client with our mock
+        from base.views import Groq  # This re-imports Groq with our mock
         
-        # Since client is patched, we just need to verify it exists
-        self.assertIsNotNone(client)
+        # Since Groq is patched, we just need to verify it exists
+        self.assertIsNotNone(Groq)
         
     @patch('json.loads')
     def test_json_parsing(self, mock_json_loads):
@@ -61,10 +61,11 @@ class GroqUtilityTests(SimpleTestCase):
         self.assertEqual(result["title"], "Test Quiz")
         self.assertEqual(len(result["questions"]), 1)
     
-    @patch('base.views.client.chat.completions.create')
-    def test_mock_groq_completion(self, mock_create):
+    @patch('base.views.Groq')
+    def test_mock_groq_completion(self, mock_groq):
         """Test mocking GROQ completion works"""
         # Set up the mock
+        mock_client = MagicMock()
         mock_choice = MagicMock()
         mock_choice.message.content = """
         {
@@ -82,10 +83,14 @@ class GroqUtilityTests(SimpleTestCase):
         
         mock_completion = MagicMock()
         mock_completion.choices = [mock_choice]
-        mock_create.return_value = mock_completion
+        mock_client.chat.completions.create.return_value = mock_completion
+        mock_groq.return_value = mock_client
         
         # Import after patching to get the patched version
-        from base.views import client
+        from base.views import Groq
+        
+        # Initialize the client
+        client = Groq()
         
         # Call the mocked function
         completion = client.chat.completions.create(
@@ -94,7 +99,7 @@ class GroqUtilityTests(SimpleTestCase):
         )
         
         # Assert the function was called
-        mock_create.assert_called_once()
+        mock_client.chat.completions.create.assert_called_once()
         
         # Assert we get our mock data
         self.assertTrue(hasattr(completion, 'choices'))
