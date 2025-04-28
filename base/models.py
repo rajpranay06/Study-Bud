@@ -24,8 +24,8 @@ class Topic(models.Model):
         return self.name
 
 class Room(models.Model):
-    host = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    topic = models.ForeignKey(Topic, on_delete=models.SET_NULL, null=True)
+    host = models.ForeignKey('User', on_delete=models.SET_NULL, null=True)
+    topic = models.ForeignKey('Topic', on_delete=models.SET_NULL, null=True)
     name = models.CharField(max_length=200)
     description = models.TextField(null=True, blank=True)
     # participants = models.ManyToManyField('User')
@@ -33,7 +33,7 @@ class Room(models.Model):
     welcome_message = models.TextField(default="Welcome {user} to {room}!")
     is_private = models.BooleanField(default=False)
     
-    participants = models.ManyToManyField(User, related_name="participants", blank=True)
+    participants = models.ManyToManyField('User', related_name="participants", blank=True)
     updated = models.DateTimeField(auto_now=True)  # Takes time stamp every time
     created = models.DateTimeField(auto_now_add=True) # Takes time stamp once, when created
     
@@ -45,8 +45,8 @@ class Room(models.Model):
         return self.name
     
 class Message(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
+    room = models.ForeignKey('Room', on_delete=models.CASCADE)
     body = models.TextField()
     file = models.FileField(upload_to='message_files/', null=True, blank=True)
     is_image = models.BooleanField(default=False)
@@ -66,25 +66,25 @@ class Message(models.Model):
     
 
 class Poll(models.Model):
-    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    room = models.ForeignKey('Room', on_delete=models.CASCADE)
     question = models.CharField(max_length=255)
-    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_by = models.ForeignKey('User', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.question
 
 class PollOption(models.Model):
-    poll = models.ForeignKey(Poll, on_delete=models.CASCADE, related_name="options")
+    poll = models.ForeignKey('Poll', on_delete=models.CASCADE, related_name="options")
     option_text = models.CharField(max_length=255)
-    votes = models.ManyToManyField(User, blank=True, related_name="poll_votes")
+    votes = models.ManyToManyField('User', blank=True, related_name="poll_votes")
 
     def vote_count(self):
         return self.votes.count()
 
 class EmojiReaction(models.Model):
-    message = models.ForeignKey(Message, on_delete=models.CASCADE, related_name='reactions')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey('Message', on_delete=models.CASCADE, related_name='reactions')
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
     emoji = models.CharField(max_length=16)  # Store emoji unicode
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -92,8 +92,8 @@ class EmojiReaction(models.Model):
         unique_together = ('message', 'user', 'emoji')
 
 class RoomJoinRequest(models.Model):
-    room = models.ForeignKey(Room, on_delete=models.CASCADE, related_name='join_requests')
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name='join_requests')
+    user = models.ForeignKey('User', on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     STATUS_CHOICES = (
         ('pending', 'Pending'),
