@@ -8,9 +8,8 @@ ARG GROQ_API_KEY
 ENV GROQ_API_KEY=${GROQ_API_KEY}
 
 # Add debugging for environment variables
-RUN echo "GROQ_API_KEY length: ${#GROQ_API_KEY}" && \
-    echo "GROQ_API_KEY first 4 chars: ${GROQ_API_KEY:0:4}" && \
-    echo "GROQ_API_KEY last 4 chars: ${GROQ_API_KEY: -4}"
+RUN echo "GROQ_API_KEY is set: ${GROQ_API_KEY:+yes}" && \
+    echo "GROQ_API_KEY length: $(echo -n "${GROQ_API_KEY}" | wc -c)"
 
 # Set the working directory in the container
 WORKDIR /app
