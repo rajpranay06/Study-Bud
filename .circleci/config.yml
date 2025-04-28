@@ -10,7 +10,7 @@ executors:
     docker:
       - image: cimg/python:3.10
     environment:
-      GROQ_API_KEY: << pipeline.parameters.GROQ_API_KEY >>
+      GROQ_API_KEY: $GROQ_API_KEY
 
 jobs:
   test:
@@ -38,10 +38,8 @@ jobs:
           name: Build Docker image
           command: |
             echo "Building Docker image..."
-            echo "GROQ_API_KEY length: ${#GROQ_API_KEY}"
             docker build \
-              --build-arg GROQ_API_KEY="${GROQ_API_KEY}" \
-              --no-cache \
+              --build-arg GROQ_API_KEY="$GROQ_API_KEY" \
               -t $DOCKERHUB_USERNAME/study-buddy:latest .
             echo "Docker build completed"
       - run:
