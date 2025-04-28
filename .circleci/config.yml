@@ -39,7 +39,7 @@ jobs:
           command: |
             echo "Building Docker image..."
             docker build \
-              --build-arg GROQ_API_KEY="$GROQ_API_KEY" \
+              --build-arg GROQ_API_KEY=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 \
               -t $DOCKERHUB_USERNAME/study-buddy:latest .
             echo "Docker build completed"
       - run:
