@@ -97,7 +97,7 @@ jobs:
       - run:
           name: Push Image to DockerHub
           command: |
-            docker push $DOCKERHUB_USERNAME/study-buddy:latest
+            docker push $DOCKERHUB_USERNAME/study-bud:latest
 
 workflows:
   version: 2
