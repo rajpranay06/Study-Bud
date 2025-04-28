@@ -7,6 +7,11 @@ ARG GROQ_API_KEY
 # Set environment variables
 ENV GROQ_API_KEY=${GROQ_API_KEY}
 
+# Add debugging for environment variables
+RUN echo "GROQ_API_KEY length: ${#GROQ_API_KEY}" && \
+    echo "GROQ_API_KEY first 4 chars: ${GROQ_API_KEY:0:4}" && \
+    echo "GROQ_API_KEY last 4 chars: ${GROQ_API_KEY: -4}"
+
 # Set the working directory in the container
 WORKDIR /app
 
@@ -27,5 +32,14 @@ RUN python manage.py reset_migrations base --no-backup
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
+# Add a script to verify environment variables
+RUN echo '#!/bin/bash\n\
+echo "Environment Variables:"\n\
+env | grep GROQ\n\
+python -c "import os; print(f\"GROQ_API_KEY length: {len(os.environ.get(\"GROQ_API_KEY\", \"\"))}\")"\n\
+exec "$@"' > /app/entrypoint.sh && \
+chmod +x /app/entrypoint.sh
+
 # Start the Django development server on port 8000
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
