@@ -10,23 +10,20 @@ ENV GROQ_API_KEY=$GROQ_API_KEY
 # Set the working directory in the container
 WORKDIR /app
 
-# Install patch utility
-RUN apt-get update && apt-get install -y patch && apt-get clean
-
 # Copy the current directory contents into the container at /app
-COPY / /app/
+COPY . /app/
 
 # Install dependencies from requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Apply the patch to fix model references
-COPY fix_models.patch /app/
-RUN if [ -f /app/fix_models.patch ]; then patch -p1 < /app/fix_models.patch; fi
+# Copy the fixed models.py file (with string references)
+COPY base/models_fixed.py /app/base/models.py
 
 # Expose port 8000 for Django
 EXPOSE 8000
 
-# Run database migrations (for SQLite)
+# Reset migrations and create new ones
+RUN python manage.py reset_migrations base --no-backup
 RUN python manage.py makemigrations
 RUN python manage.py migrate
 
