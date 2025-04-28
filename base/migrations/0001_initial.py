@@ -6,6 +6,7 @@ import django.db.models.deletion
 import django.utils.timezone
 from django.conf import settings
 from django.db import migrations, models
+from django.contrib.auth import get_user_model
 
 
 class Migration(migrations.Migration):
@@ -20,7 +21,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Topic',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=200)),
             ],
         ),
@@ -55,14 +56,15 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Room',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=200)),
                 ('description', models.TextField(blank=True, null=True)),
                 ('welcome_message', models.TextField(default='Welcome {user} to {room}!')),
+                ('is_private', models.BooleanField(default=False)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('host', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
-                ('participants', models.ManyToManyField(blank=True, related_name='participants', to=settings.AUTH_USER_MODEL)),
+                ('host', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=get_user_model())),
+                ('participants', models.ManyToManyField(blank=True, related_name='participants', to=get_user_model())),
                 ('topic', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to='base.topic')),
             ],
             options={
@@ -72,16 +74,64 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Message',
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('body', models.TextField()),
+                ('file', models.FileField(blank=True, null=True, upload_to='message_files/')),
+                ('is_image', models.BooleanField(default=False)),
                 ('is_bot', models.BooleanField(default=False)),
                 ('updated', models.DateTimeField(auto_now=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
                 ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='base.room')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=get_user_model())),
             ],
             options={
                 'ordering': ['-updated', '-created'],
+            },
+        ),
+        migrations.CreateModel(
+            name='RoomJoinRequest',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('status', models.CharField(choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending', max_length=10)),
+                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='join_requests', to='base.room')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=get_user_model())),
+            ],
+            options={
+                'ordering': ['-created_at'],
+                'unique_together': {('room', 'user')},
+            },
+        ),
+        migrations.CreateModel(
+            name='Poll',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('question', models.CharField(max_length=255)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=get_user_model())),
+                ('room', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='base.room')),
+            ],
+        ),
+        migrations.CreateModel(
+            name='PollOption',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('option_text', models.CharField(max_length=255)),
+                ('poll', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='options', to='base.poll')),
+                ('votes', models.ManyToManyField(blank=True, related_name='poll_votes', to=get_user_model())),
+            ],
+        ),
+        migrations.CreateModel(
+            name='EmojiReaction',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('emoji', models.CharField(max_length=16)),
+                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('message', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='reactions', to='base.message')),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=get_user_model())),
+            ],
+            options={
+                'unique_together': {('message', 'user', 'emoji')},
             },
         ),
     ]

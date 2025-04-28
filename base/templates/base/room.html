@@ -1,142 +1,1413 @@
 {% extends 'main.html' %}
-
+{% load reaction_tags %}
 {% block content %}
-    <main class="profile-page layout layout--2">
-      <div class="container">
-        <!-- Room Start -->
-        <div class="room">
-          <div class="room__top">
-            <div class="room__topLeft">
-              <a href="{% url 'home' %}">
-                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                  <title>arrow-left</title>
-                  <path
-                    d="M13.723 2.286l-13.723 13.714 13.719 13.714 1.616-1.611-10.96-10.96h27.625v-2.286h-27.625l10.965-10.965-1.616-1.607z"
-                  ></path>
-                </svg>
-              </a>
-              <h3>Study Room</h3>
-            </div>
 
-            {% if room.host == request.user %}
-            <div class="room__topRight">
-              <a href="{% url 'update-room' room.id %}">
-                <svg
-                  enable-background="new 0 0 24 24"
-                  height="32"
-                  viewBox="0 0 24 24"
-                  width="32"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <title>edit</title>
-                  <g>
-                    <path d="m23.5 22h-15c-.276 0-.5-.224-.5-.5s.224-.5.5-.5h15c.276 0 .5.224.5.5s-.224.5-.5.5z" />
-                  </g>
-                  <g>
-                    <g>
-                      <path
-                        d="m2.5 22c-.131 0-.259-.052-.354-.146-.123-.123-.173-.3-.133-.468l1.09-4.625c.021-.09.067-.173.133-.239l14.143-14.143c.565-.566 1.554-.566 2.121 0l2.121 2.121c.283.283.439.66.439 1.061s-.156.778-.439 1.061l-14.142 14.141c-.065.066-.148.112-.239.133l-4.625 1.09c-.038.01-.077.014-.115.014zm1.544-4.873-.872 3.7 3.7-.872 14.042-14.041c.095-.095.146-.22.146-.354 0-.133-.052-.259-.146-.354l-2.121-2.121c-.19-.189-.518-.189-.707 0zm3.081 3.283h.01z"
-                      />
-                    </g>
-                    <g>
-                      <path
-                        d="m17.889 10.146c-.128 0-.256-.049-.354-.146l-3.535-3.536c-.195-.195-.195-.512 0-.707s.512-.195.707 0l3.536 3.536c.195.195.195.512 0 .707-.098.098-.226.146-.354.146z"
-                      />
-                    </g>
-                  </g>
-                </svg>
-              </a>
-              <a href="{% url 'delete-room' room.id %}">
-                <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                  <title>remove</title>
-                  <path
-                    d="M27.314 6.019l-1.333-1.333-9.98 9.981-9.981-9.981-1.333 1.333 9.981 9.981-9.981 9.98 1.333 1.333 9.981-9.98 9.98 9.98 1.333-1.333-9.98-9.98 9.98-9.981z"
-                  ></path>
-                </svg>
-              </a>
-            </div>
+<main class="profile-page layout layout--2">
+   <div class="room-container">
+      <!-- Polls Section (Left) -->
+      <div class="polls-section scroll">
+         <h3 class="participants__top">Active Polls
+            {% if request.user.is_authenticated and request.user == room.host or request.user in room.participants.all %}
+            <button onclick="togglePollForm()" style="margin-left: 10px;" class='add-poll'>+ New</button>
+            <button onclick="toggleQuizForm()" style="margin-left: 10px;" class='take-quiz'>Take Quiz</button>
             {% endif %}
-            
-          </div>
-          <div class="room__box scroll">
-            <div class="room__header scroll">
-              <div class="room__info">
-                <h3>{{room.name}}</h3>
-                <span>{{room.created | timesince}} ago</span>
-              </div>
-              <div class="room__hosted">
-                <p>Hosted By</p>
-                <a href="{% url 'user-profile' room.host.id %}" class="room__author">
-                  <div class="avatar avatar--small">
-                    <img src="{{room.host.avatar.url}}" />
-                  </div>
-                  <span>@{{room.host.username}}</span>
-                </a>
-              </div>
-              <span class="room__topics">{{room.topic}}</span>
+         </h3>
+         {% if request.user.is_authenticated and request.user != room.host and request.user not in room.participants.all %}
+         <div class="restriction-notice">
+            <p>You must be an approved member of this room to create polls or take quizzes</p>
+            {% if room.is_private %}
+               {% if not join_request %}
+               <form action="{% url 'request-join-room' room.id %}" method="POST">
+                  {% csrf_token %}
+                  <button type="submit" class="btn request-join-btn">Request Access</button>
+               </form>
+               {% elif join_request.status == 'pending' %}
+               <span class="request-status pending">Request pending</span>
+               {% elif join_request.status == 'rejected' %}
+               <form action="{% url 'request-join-room' room.id %}" method="POST">
+                  {% csrf_token %}
+                  <button type="submit" class="btn request-again-btn">Request Again</button>
+               </form>
+               {% endif %}
+            {% endif %}
+         </div>
+         {% endif %}
+         <!-- Poll Creation Form -->
+         <div id="pollForm" style="display:none; margin-bottom: 20px;">
+            <form method="POST" action="{% url 'create-poll' room.id %}">
+               {% csrf_token %}
+               <input type="text" name="question" placeholder="Poll question" required style="width: 95%; margin-bottom: 6px;">
+               <div id="pollOptions">
+                  <input type="text" name="options" placeholder="Option 1" required style="width: 95%; margin-bottom: 6px;">
+                  <input type="text" name="options" placeholder="Option 2" required style="width: 95%; margin-bottom: 6px;">
+               </div>
+               <button type="button" onclick="addOption()" style="margin-bottom: 8px;">+ Add Option</button>
+               <button type="submit">Create Poll</button>
+            </form>
+         </div>
+         <!-- Quiz Generator Form -->
+         <div id="quizForm" style="display:none; margin-bottom: 20px;">
+            <form method="POST" action="{% url 'generate-quiz' room.id %}">
+               {% csrf_token %}
+               <input type="hidden" name="topic" value="{{ room.topic.name }}">
+               <div class="form-group">
+                  <label for="num_questions">Number of Questions:</label>
+                  <select name="num_questions" id="num_questions" required style="width: 95%; margin-bottom: 6px;">
+                     <option value="5">5</option>
+                     <option value="10">10</option>
+                     <option value="15">15</option>
+                  </select>
+               </div>
+               <div class="form-group">
+                  <label for="difficulty">Difficulty Level:</label>
+                  <select name="difficulty" id="difficulty" required style="width: 95%; margin-bottom: 6px;">
+                     <option value="easy">Easy</option>
+                     <option value="medium">Medium</option>
+                     <option value="hard">Hard</option>
+                  </select>
+               </div>
+               <button type="submit" class="btn quiz-generate-btn">Generate Quiz</button>
+            </form>
+         </div>
+         <!-- Existing Polls -->
+         {% for poll in room.poll_set.all %}
+         <div class="poll-card">
+            <div class="poll-header">
+               <div class="poll-title">{{ poll.question }}</div>
+               <div class="poll-author">By <a href="{% url 'user-profile' poll.created_by.id %}">@{{ poll.created_by.username }}</a></div>
             </div>
-            <div class="room__conversation">
-              <div class="threads scroll">
-                {% for message in room_messages %}
-                  <div class="thread">
-                    <div class="thread__top">
-                      <div class="thread__author">
-                        <a href="{% url 'user-profile' message.user.id %}" class="thread__authorInfo">
-                          <div class="avatar avatar--small">
-                            <img src="{{message.user.avatar.url}}" />
-                          </div>
-                          <span>@{{message.user.username}}</span>
+            <div class="poll-options">
+               {% for option in poll.options.all %}
+               <form method="POST" action="{% url 'vote-poll' poll.id option.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="poll-option {% if request.user in option.votes.all %}voted{% endif %}">
+                     <div class="option-text">{{ option.option_text }}</div>
+                     <div class="progress-container">
+                        <div class="progress-bar" style="width: {% widthratio option.vote_count option.poll.options.all|length|default:1 100 %}%"></div>
+                     </div>
+                     <span class="vote-count">{{ option.vote_count }}</span>
+                  </button>
+               </form>
+               {% endfor %}
+            </div>
+            <div class="poll-meta">
+               <span class="poll-total-votes">{{ poll.options.all|length }} options · Total votes: 
+                  {% with total_votes=0 %}
+                     {% for option in poll.options.all %}
+                        {% with total_votes=total_votes|add:option.vote_count %}{% endwith %}
+                     {% endfor %}
+                     {{ total_votes }}
+                  {% endwith %}
+               </span>
+            </div>
+         </div>
+         {% empty %}
+         <div class="empty-message">
+            <div class="empty-icon">📊</div>
+            <p>No polls created yet.</p>
+            {% if request.user.is_authenticated and request.user == room.host or request.user in room.participants.all %}
+            <button onclick="togglePollForm()" class="add-poll empty-action">+ Create Poll</button>
+            {% endif %}
+         </div>
+         {% endfor %}
+      </div>
+      
+      <!-- Main Chat Section (Middle) -->
+      <div class="chat-section">
+         <div class="room">
+            <div class="room__top">
+               <div class="room__topLeft">
+                  <a href="{% url 'home' %}" class="back-button">
+                     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                        <title>arrow-left</title>
+                        <path
+                           d="M13.723 2.286l-13.723 13.714 13.719 13.714 1.616-1.611-10.96-10.96h27.625v-2.286h-27.625l10.965-10.965-1.616-1.607z"
+                           ></path>
+                     </svg>
+                  </a>
+                  <h3 class="room-title">{{ room.name }}</h3>
+               </div>
+               
+               <div class="room__topRight">
+                  {% if room.is_private %}
+                     <span class="room-badge private">Private Room</span>
+                  {% endif %}
+                  
+                  {% if room.host == request.user %}
+                     <a href="{% url 'manage-join-requests' room.id %}" class="btn btn--main join-requests-btn">
+                        Join Requests
+                        {% if pending_requests_count > 0 %}
+                           <span class="pending-count">{{ pending_requests_count }}</span>
+                        {% endif %}
+                     </a>
+                  {% elif room.is_private and request.user.is_authenticated and request.user not in room.participants.all %}
+                     <!-- Show join request button for private rooms -->
+                     <div class="join-room-actions">
+                        {% if join_request %}
+                           {% if join_request.status == 'pending' %}
+                              <span class="request-status pending">Request pending</span>
+                           {% elif join_request.status == 'rejected' %}
+                              <form action="{% url 'request-join-room' room.id %}" method="POST">
+                                 {% csrf_token %}
+                                 <button type="submit" class="btn request-again-btn">Request Again</button>
+                              </form>
+                           {% endif %}
+                        {% else %}
+                           <form action="{% url 'request-join-room' room.id %}" method="POST">
+                              {% csrf_token %}
+                              <button type="submit" class="btn request-join-btn">Join Room</button>
+                           </form>
+                        {% endif %}
+                     </div>
+                  {% endif %}
+                  
+                  {% if room.host == request.user %}
+                     <div class="room-actions">
+                        <a href="{% url 'update-room' room.id %}" class="edit-button">
+                           <svg
+                              enable-background="new 0 0 24 24"
+                              height="32"
+                              viewBox="0 0 24 24"
+                              width="32"
+                              xmlns="http://www.w3.org/2000/svg"
+                              >
+                              <title>edit</title>
+                              <g>
+                                 <path d="m23.5 22h-15c-.276 0-.5-.224-.5-.5s.224-.5.5-.5h15c.276 0 .5.224.5.5s-.224.5-.5.5z" />
+                              </g>
+                              <g>
+                                 <g>
+                                    <path
+                                       d="m2.5 22c-.131 0-.259-.052-.354-.146-.123-.123-.173-.3-.133-.468l1.09-4.625c.021-.09.067-.173.133-.239l14.143-14.143c.565-.566 1.554-.566 2.121 0l2.121 2.121c.283.283.439.66.439 1.061s-.156.778-.439 1.061l-14.142 14.141c-.065.066-.148.112-.239.133l-4.625 1.09c-.038.01-.077.014-.115.014zm1.544-4.873-.872 3.7 3.7-.872 14.042-14.041c.095-.095.146-.22.146-.354 0-.133-.052-.259-.146-.354l-2.121-2.121c-.19-.189-.518-.189-.707 0zm3.081 3.283h.01z"
+                                       />
+                                 </g>
+                                 <g>
+                                    <path
+                                       d="m17.889 10.146c-.128 0-.256-.049-.354-.146l-3.535-3.536c-.195-.195-.195-.512 0-.707s.512-.195.707 0l3.536 3.536c.195.195.195.512 0 .707-.098.098-.226.146-.354.146z"
+                                       />
+                                 </g>
+                              </g>
+                           </svg>
                         </a>
-                        <span class="thread__date">{{ message.created | timesince }} ago</span>
-                      </div>
-                      {% if request.user == message.user %}
-                        <a href="{% url 'delete-message' message.id %}">
-                          <div class="thread__delete">
-                            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                        <a href="{% url 'delete-room' room.id %}" class="delete-button">
+                           <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
                               <title>remove</title>
                               <path
-                                d="M27.314 6.019l-1.333-1.333-9.98 9.981-9.981-9.981-1.333 1.333 9.981 9.981-9.981 9.98 1.333 1.333 9.981-9.98 9.98 9.98 1.333-1.333-9.98-9.98 9.98-9.981z"
-                              ></path>
-                            </svg>
-                          </div>
+                                 d="M27.314 6.019l-1.333-1.333-9.98 9.981-9.981-9.981-1.333 1.333 9.981 9.981-9.981 9.98 1.333 1.333 9.981-9.98 9.98 9.98 1.333-1.333-9.98-9.98 9.98-9.981z"
+                                 ></path>
+                           </svg>
                         </a>
-                      {% endif %}
-                    </div>
-                    <div class="thread__details">
-                      {{ message.body }}
-                    </div>
-                  </div>
-                {% endfor %}
-              </div>
+                     </div>
+                  {% endif %}
+               </div>
             </div>
-          </div>
-          <div class="room__message">
-            <form action="" method="POST">
-              {% csrf_token %}
-              <input name="body" placeholder="Write your message here..." /></form>
-          </div>
-        </div>
-        <!-- Room End -->
-
-        <!--   Start -->
-        <div class="participants">
-          <h3 class="participants__top">Participants <span>({{participants.count}} Joined)</span></h3>
-          <div class="participants__list scroll">
+            <div class="room__box scroll">
+               <div class="room-info-header">
+                  <div class="topic-tag">
+                     <span class="room__topics">{{room.topic}}</span>
+                  </div>
+                  
+                  <div class="created-time">
+                     <span>{{room.created | timesince}}</span> ago • 
+                     <div class="host-section">
+                        <a href="{% url 'user-profile' room.host.id %}" class="host-profile">
+                           <div class="avatar avatar--medium">
+                              <img src="{{room.host.avatar.url}}" />
+                           </div>
+                           <span>@{{room.host.username}}</span>
+                        </a>
+                     </div>
+                  </div>
+               </div>
+               
+               {% if not room.is_private or request.user == room.host or request.user in room.participants.all %}
+               <div class="room__conversation">
+                  <div class="threads scroll">
+                     {% for message in room_messages %}
+                     <div class="thread">
+                        <div class="thread__top">
+                           <div class="thread__author">
+                              <a href="{% url 'user-profile' message.user.id %}" class="thread__authorInfo">
+                                 <div class="avatar avatar--small">
+                                    <img src="{{message.user.avatar.url}}" />
+                                 </div>
+                                 <span>@{{message.user.username}}</span>
+                              </a>
+                              <span class="thread__date">{{ message.created | timesince }} ago</span>
+                           </div>
+                           {% if request.user == message.user %}
+                           <a href="{% url 'delete-message' message.id %}">
+                              <div class="thread__delete">
+                                 <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+                                    <title>remove</title>
+                                    <path
+                                       d="M27.314 6.019l-1.333-1.333-9.98 9.981-9.981-9.981-1.333 1.333 9.981 9.981-9.981 9.98 1.333 1.333 9.981-9.98 9.98 9.98 1.333-1.333-9.98-9.98 9.98-9.981z"
+                                       ></path>
+                                 </svg>
+                              </div>
+                           </a>
+                           {% endif %}
+                        </div>
+                        <div class="thread__details">
+                           {{ message.body }}
+                           
+                           {% if message.file %}
+                              <div class="message-attachment">
+                                 {% if message.is_image %}
+                                    <div class="message-image">
+                                       <img src="{{ message.file.url }}" alt="Uploaded image">
+                                    </div>
+                                 {% else %}
+                                    <div class="message-file">
+                                       <a href="{{ message.file.url }}" target="_blank" class="file-download">
+                                          <i class="file-icon">📄</i>
+                                          Download File
+                                       </a>
+                                    </div>
+                                 {% endif %}
+                              </div>
+                           {% endif %}
+                        </div>
+                        <div class="reactions">
+                           {% for reaction in message.reactions.all|regroup_by_emoji %}
+                           <span class="emoji-badge" title="{{ reaction.users|join:', ' }}">
+                              {{ reaction.emoji }}
+                              <span class="count">{{ reaction.count }}</span>
+                           </span>
+                           {% endfor %}
+                           {% if request.user.is_authenticated %}
+                           <div class="emoji-picker">
+                              <button type="button" class="emoji-trigger" onclick="toggleEmojiPanel(this)">😀</button>
+                              <div class="emoji-panel">
+                                 <form method="POST" action="{% url 'add-emoji-reaction' message.id %}">
+                                    {% csrf_token %}
+                                    <div class="emoji-grid">
+                                       <button type="submit" name="emoji" value="👍">👍</button>
+                                       <button type="submit" name="emoji" value="❤️">❤️</button>
+                                       <button type="submit" name="emoji" value="😀">😀</button>
+                                       <button type="submit" name="emoji" value="🎉">🎉</button>
+                                       <button type="submit" name="emoji" value="👏">👏</button>
+                                       <button type="submit" name="emoji" value="🔥">🔥</button>
+                                       <button type="submit" name="emoji" value="🤔">🤔</button>
+                                       <button type="submit" name="emoji" value="😂">😂</button>
+                                       <button type="submit" name="emoji" value="😍">😍</button>
+                                       <button type="submit" name="emoji" value="😢">😢</button>
+                                       <button type="submit" name="emoji" value="👎">👎</button>
+                                       <button type="submit" name="emoji" value="🙏">🙏</button>
+                                    </div>
+                                 </form>
+                              </div>
+                           </div>
+                           {% endif %}
+                        </div>
+                     </div>
+                     {% empty %}
+                     <div style="color:#888; margin: 20px 0;">No messages yet. Start the conversation!</div>
+                     {% endfor %}
+                  </div>
+               </div>
+               {% else %}
+               <div class="private-content-message">
+                  <h3>Private Room Content</h3>
+                  <p>You need to join this room to view the messages.</p>
+                  
+                  {% if join_request %}
+                     {% if join_request.status == 'pending' %}
+                        <div class="request-pending">
+                           <p>Your request to join this room is pending approval.</p>
+                        </div>
+                     {% elif join_request.status == 'rejected' %}
+                        <div class="request-rejected">
+                           <p>Your request to join this room was rejected.</p>
+                           <form action="{% url 'request-join-room' room.id %}" method="POST">
+                              {% csrf_token %}
+                              <button type="submit" class="btn btn--main">Request Again</button>
+                           </form>
+                        </div>
+                     {% endif %}
+                  {% else %}
+                     <form action="{% url 'request-join-room' room.id %}" method="POST" class="join-request-form">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn--main btn--lg">Request to Join</button>
+                     </form>
+                  {% endif %}
+               </div>
+               {% endif %}
+            </div>
+            {% if not room.is_private or request.user == room.host or request.user in room.participants.all %}
+            <div class="room__message">
+               <form action="" method="POST" enctype="multipart/form-data">
+                  {% csrf_token %}
+                  <input name="body" placeholder="Write your message here..." />
+                  <div class="message-actions">
+                     <label for="file-upload" class="file-upload-label">
+                        <i class="file-icon">📎</i>
+                        <span class="file-text">Attach</span>
+                     </label>
+                     <input id="file-upload" type="file" name="message_file" style="display: none;" onchange="updateFileLabel(this)"/>
+                     <span id="file-name" class="file-name"></span>
+                     <button type="submit" class="btn btn--main send-button">Send</button>
+                  </div>
+               </form>
+            </div>
+            {% endif %}
+         </div>
+      </div>
+      
+      <!-- Participants Section (Right) -->
+      <div class="participants-section">
+         <h3 class="participants__top">Participants <span>({{participants.count}} Joined)</span></h3>
+         <div class="participants__list scroll">
             {% for user in participants %}
             <a href="{% url 'user-profile' user.id %}" class="participant">
-              <div class="avatar avatar--medium">
-                <img src="{{user.avatar.url}}" />
-              </div>
-              <p>
-                {{user.username}}
-                <span>@{{user.username}}</span>
-              </p>
+               <div class="avatar avatar--medium">
+                  <img src="{{user.avatar.url}}" />
+               </div>
+               <p>
+                  {{user.username}}
+                  <span>@{{user.username}}</span>
+               </p>
             </a>
             {% endfor %}
-          </div>
-        </div>
-        <!--  End -->
+         </div>
       </div>
-    </main>
+   </div>
+</main>
 
+<style>
+   /* Reset all styles and apply our consistent dark theme */
+   /* Base layout styles */
+   .room-container {
+      display: grid;
+      grid-template-columns: 320px 1fr 300px;
+      gap: 25px;
+      padding: 25px;
+      min-height: 80vh;
+      overflow: hidden;
+      width: 100%;
+   }
+   
+   /* Top navigation and header */
+   .room__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 0;
+      border-bottom: 1px solid #3f4156;
+      margin-bottom: 1rem;
+      background-color: #2d2d39;
+   }
+   
+   .room__topLeft {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+   }
+   
+   .back-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+   }
+   
+   .back-button svg {
+      width: 18px;
+      height: 18px;
+      fill: #a1a1a1;
+   }
+   
+   .room-title {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: #e5e5e5;
+      margin: 0;
+      max-width: 300px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+   }
+   
+   .room__topRight {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+   }
+   
+   .edit-button, .delete-button {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+   }
+   
+   .join-requests-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+   }
+   
+   .room-badge {
+      padding: 0.3rem 0.7rem;
+      border-radius: 1rem;
+      font-size: 0.8rem;
+      font-weight: 500;
+   }
+   
+   .room-badge.private {
+      background-color: #e74c3c;
+      color: white;
+   }
+   
+   .room-badge.public {
+      background-color: #2ecc71;
+      color: white;
+   }
+   
+   /* Section styles */
+   .polls-section {
+     background: #3f4156;
+     border-radius: 10px;
+     padding: 18px;
+     min-height: 400px;
+     overflow-y: auto;
+     height: calc(100vh - 120px);
+   }
+   
+   .participants-section {
+     background: #3f4156;
+     border-radius: 10px;
+     padding: 18px;
+     min-height: 400px;
+     height: calc(100vh - 120px);
+     overflow: hidden;
+   }
+   
+   .chat-section {
+     display: flex;
+     flex-direction: column;
+     min-height: calc(100vh - 120px);
+   }
+   
+   .room {
+     display: flex;
+     flex-direction: column;
+     height: 100%;
+     background-color: #2d2d39;
+     border-radius: 10px;
+     overflow: hidden;
+   }
+   
+   /* Room header and chat area */
+   .room__box {
+     flex: 1;
+     overflow-y: auto;
+     display: flex;
+     flex-direction: column;
+   }
+   
+   .room-info-header {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+     padding: 0.25rem 0.5rem;
+     background-color: #2d2d39;
+     border-bottom: 1px solid #3f4156;
+     margin-bottom: 0;
+     flex-wrap: wrap;
+     gap: 0.3rem;
+     font-size: 0.75rem;
+     min-height: auto;
+     height: auto;
+   }
+   
+   .topic-tag {
+     display: inline-flex;
+     align-items: center;
+     background-color: #4a4c64;
+     padding: 0.15rem 0.5rem;
+     border-radius: 1rem;
+     font-size: 0.8rem;
+     color: #e5e5e5;
+     font-weight: 500;
+   }
+   
+   .created-time {
+     font-size: 0.8rem;
+     color: #a1a1a1;
+     margin-bottom: 0;
+     font-weight: normal;
+     display: flex;
+     align-items: center;
+     gap: 0.3rem;
+   }
+   
+   .created-time span {
+     color: #77DAEF;
+     font-size: 0.85rem;
+     font-weight: 500;
+   }
+   
+   .host-section {
+     display: flex;
+     align-items: center;
+     gap: 0.3rem;
+   }
+   
+   .host-section h4 {
+     margin: 0;
+     text-transform: uppercase;
+     font-size: 0.65rem;
+     color: #a1a1a1;
+   }
+   
+   .host-profile {
+     display: flex;
+     align-items: center;
+     gap: 0.3rem;
+   }
+   
+   .host-profile img {
+     border-radius: 50%;
+     width: 18px;
+     height: 18px;
+   }
+   
+   .host-profile span {
+     font-size: 0.85rem;
+     color: #e5e5e5;
+     font-weight: 500;
+   }
+   
+   .room-info-header .avatar--medium {
+     width: 18px;
+     height: 18px;
+   }
+   
+   .room-info-header .avatar--medium img {
+     width: 100%;
+     height: 100%;
+   }
+   
+   /* Message area */
+   .room__conversation {
+     flex: 1;
+     padding: 0.5rem;
+     margin-top: 0;
+     overflow-y: auto;
+     background-color: #2d2d39;
+     height: calc(100% - 35px);
+   }
+   
+   .threads {
+     max-height: none;
+     display: flex;
+     flex-direction: column;
+   }
+   
+   .thread {
+     background: #3f4156;
+     border-radius: 10px;
+     padding: 0.75rem;
+     margin-bottom: 12px;
+     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+   }
+   
+   .thread__author {
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+   }
+   
+   .thread__authorInfo {
+     display: flex;
+     align-items: center;
+     gap: 0.5rem;
+     color: #e5e5e5;
+     text-decoration: none;
+   }
+   
+   .thread__date {
+     font-size: 0.75rem;
+     color: #a1a1a1;
+   }
+   
+   .thread__details {
+     margin-top: 0.5rem;
+     line-height: 1.4;
+   }
+   
+   /* Private content messaging */
+   .private-content-message {
+     flex: 1;
+     display: flex;
+     flex-direction: column;
+     justify-content: center;
+     align-items: center;
+     background-color: #2d2d39;
+     padding: 2rem;
+   }
+   
+   .private-content-message h3 {
+     margin-bottom: 15px;
+     color: #e5e5e5;
+   }
+   
+   .private-content-message p {
+     margin-bottom: 20px;
+     color: #a1a1a1;
+   }
+   
+   /* Message input area */
+   .room__message {
+     padding: 0.75rem;
+     background-color: #3f4156;
+     border-radius: 0 0 10px 10px;
+     border-top: 1px solid #2d2d39;
+   }
+   
+   .room__message input {
+     width: 100%;
+     padding: 0.75rem;
+     border-radius: 1.5rem;
+     border: none;
+     background-color: #2d2d39;
+     color: white;
+   }
+   
+   .message-actions {
+     margin-top: 0.5rem;
+     display: flex;
+     align-items: center;
+     justify-content: space-between;
+   }
+   
+   /* Join request styling */
+   .pending-count {
+     background-color: #fc8181;
+     color: white;
+     border-radius: 50%;
+     width: 20px;
+     height: 20px;
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     font-size: 0.75rem;
+   }
+   
+   .join-requests-btn {
+     margin-right: 10px;
+     position: relative;
+   }
+   
+   .join-room-actions {
+     display: flex;
+     align-items: center;
+   }
+   
+   .request-status {
+     font-size: 0.9rem;
+     padding: 0.3rem 0.7rem;
+     border-radius: 0.3rem;
+   }
+   
+   .request-status.pending {
+     background-color: #ebf4ff;
+     color: #4c51bf;
+   }
+   
+   .request-join-btn, .request-again-btn {
+     background-color: #4338ca;
+     color: white;
+     border: none;
+     padding: 0.4rem 0.8rem;
+     border-radius: 0.3rem;
+     cursor: pointer;
+     font-weight: 500;
+     transition: background-color 0.2s;
+   }
+   
+   .request-join-btn:hover {
+     background-color: #3730a3;
+   }
+   
+   .request-again-btn {
+     background-color: #e53e3e;
+   }
+   
+   .request-again-btn:hover {
+     background-color: #c53030;
+   }
+   
+   /* File uploads */
+   .file-upload-label {
+     display: inline-flex;
+     align-items: center;
+     padding: 6px 12px;
+     background-color: #2d2d39;
+     color: white;
+     border-radius: 20px;
+     cursor: pointer;
+     margin-right: 10px;
+     font-size: 0.9rem;
+   }
+   
+   .file-upload-label:hover {
+     background-color: #383847;
+   }
+   
+   .file-icon {
+     margin-right: 5px;
+   }
+   
+   .file-name {
+     margin-right: 10px;
+     font-size: 0.85rem;
+     max-width: 150px;
+     overflow: hidden;
+     text-overflow: ellipsis;
+     white-space: nowrap;
+     color: #a1a1a1;
+   }
+   
+   .send-button {
+     padding: 6px 15px;
+     border-radius: 20px;
+   }
+   
+   /* Message attachments */
+   .message-attachment {
+     margin-top: 10px;
+     border-radius: 8px;
+     overflow: hidden;
+     background-color: #2d2d39;
+   }
+   
+   .message-image img {
+     max-width: 100%;
+     max-height: 250px;
+     border-radius: 8px;
+   }
+   
+   .message-file {
+     padding: 10px;
+     background-color: #2d2d39;
+     border-radius: 8px;
+   }
+   
+   .file-download {
+     display: flex;
+     align-items: center;
+     color: white;
+     text-decoration: none;
+   }
+   
+   .file-download:hover {
+     text-decoration: underline;
+   }
+   
+   /* Reactions */
+   .emoji-badge {
+     background: #2d2d39;
+     padding: 4px 8px;
+     border-radius: 15px;
+     margin-right: 5px;
+     display: inline-flex;
+     align-items: center;
+     cursor: default;
+   }
+   
+   .emoji-badge:hover {
+     background: #383847;
+   }
+   
+   .emoji-trigger {
+     background: #2d2d39;
+     border: none;
+     padding: 4px 8px;
+     border-radius: 15px;
+     cursor: pointer;
+   }
+   
+   .emoji-panel {
+     display: none;
+     position: absolute;
+     background: #3f4156;
+     border-radius: 10px;
+     box-shadow: 0 0 10px rgba(0,0,0,0.2);
+     z-index: 10;
+     padding: 10px;
+     margin-top: 5px;
+   }
+   
+   .emoji-grid {
+     display: grid;
+     grid-template-columns: repeat(6, 1fr);
+     gap: 5px;
+   }
+   
+   .emoji-grid button {
+     background: none;
+     border: none;
+     font-size: 20px;
+     cursor: pointer;
+     padding: 5px;
+     border-radius: 5px;
+   }
+   
+   .emoji-grid button:hover {
+     background: #2d2d39;
+   }
+   
+   .emoji-picker {
+     position: relative;
+     display: inline-block;
+   }
+   
+   .emoji-badge .count {
+     margin-left: 5px;
+     font-size: 0.85em;
+   }
+   
+   /* Poll styling */
+   .poll-card {
+     background-color: #2d2d39;
+     border-radius: 8px;
+     padding: 15px;
+     margin-bottom: 16px;
+     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+     border: 1px solid #444;
+     transition: transform 0.2s ease-in-out;
+   }
+   
+   .poll-card:hover {
+     transform: translateY(-2px);
+     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+   }
+   
+   .poll-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-start;
+     margin-bottom: 12px;
+   }
+   
+   .poll-title {
+     font-size: 1.1rem;
+     font-weight: 600;
+     color: #e5e5e5;
+     margin-bottom: 5px;
+   }
+   
+   .poll-author {
+     font-size: 0.85rem;
+     color: #a0aec0;
+   }
+   
+   .poll-timestamp {
+     font-size: 0.8rem;
+     color: #718096;
+   }
+   
+   .poll-options {
+     display: flex;
+     flex-direction: column;
+     gap: 8px;
+     margin-top: 10px;
+   }
+   
+   .poll-options button {
+     background-color: #3f3f4f;
+     color: #e5e5e5;
+     border: 1px solid #4a4a57;
+     border-radius: 6px;
+     padding: 8px 12px;
+     text-align: left;
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     cursor: pointer;
+     transition: all 0.2s ease;
+   }
+   
+   .poll-options button:hover {
+     background-color: #4a4a5a;
+     border-color: #5a5a67;
+   }
+   
+   .poll-options button.voted {
+     background: #4c51bf;
+     color: white;
+     border-color: #4338ca;
+   }
+   
+   .vote-count {
+     margin-left: 8px;
+     background: rgba(0,0,0,0.2);
+     padding: 2px 8px;
+     border-radius: 10px;
+     font-size: 0.95em;
+   }
+   
+   .poll-footer {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-top: 10px;
+     font-size: 0.85rem;
+     color: #a0aec0;
+   }
+   
+   .total-votes {
+     display: flex;
+     align-items: center;
+     gap: 5px;
+   }
+   
+   .poll-actions {
+     display: flex;
+     gap: 8px;
+   }
+   
+   .poll-action-btn {
+     background: none;
+     border: none;
+     color: #a0aec0;
+     cursor: pointer;
+     padding: 2px 5px;
+     font-size: 0.85rem;
+   }
+   
+   .poll-action-btn:hover {
+     color: #e5e5e5;
+   }
+   
+   /* Responsive styling */
+   @media screen and (max-width: 1200px) {
+     .room-container {
+       grid-template-columns: 200px 1fr 200px;
+       gap: 1rem;
+     }
+     
+     .room__topLeft {
+        max-width: 60%;
+     }
+   }
+   
+   @media screen and (max-width: 992px) {
+     .room-container {
+       grid-template-columns: 1fr;
+       padding: 15px;
+     }
+     
+     .polls-section, .participants-section {
+       display: none;
+     }
+     
+     .room-info-header {
+       flex-direction: column;
+       align-items: flex-start;
+       padding: 0.5rem;
+     }
+     
+     .host-section {
+       margin: 0.5rem 0;
+     }
+     
+     .room__top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.8rem;
+        padding: 15px;
+     }
+     
+     .room__topLeft {
+        max-width: 100%;
+        margin-bottom: 10px;
+     }
+     
+     .room__topRight {
+        width: 100%;
+        justify-content: flex-end;
+     }
+     
+     .room-title {
+        font-size: 1.3rem;
+        max-width: 200px;
+     }
+   }
+   
+   @media screen and (max-width: 900px) {
+       .room__top {
+           padding: 0.8rem;
+       }
+       
+       .pending-count {
+           width: 18px;
+           height: 18px;
+           font-size: 0.7rem;
+       }
+       
+       .request-status {
+           font-size: 0.8rem;
+           padding: 0.25rem 0.6rem;
+       }
+       
+       .request-join-btn, .request-again-btn {
+           padding: 0.3rem 0.7rem;
+           font-size: 0.9rem;
+       }
+   }
+   
+   @media screen and (max-width: 576px) {
+     .room__top {
+        padding: 0.8rem 0;
+     }
+     
+     .join-requests-btn {
+        font-size: 0.9rem;
+        padding: 0.3rem 0.6rem;
+     }
+     
+     .room-badge, .request-status {
+        font-size: 0.75rem;
+        padding: 0.2rem 0.5rem;
+     }
+   }
+
+   @media screen and (max-width: 500px) {
+       .room__top {
+           flex-direction: column;
+           align-items: flex-start;
+           gap: 0.5rem;
+       }
+       
+       .pending-count {
+           width: 16px;
+           height: 16px;
+           font-size: 0.65rem;
+       }
+       
+       .request-status {
+           font-size: 0.75rem;
+           padding: 0.2rem 0.5rem;
+       }
+       
+       .request-join-btn, .request-again-btn {
+           padding: 0.25rem 0.6rem;
+           font-size: 0.85rem;
+       }
+   }
+
+   /* Add styling for the Take Quiz button and form */
+   .take-quiz {
+     display: inline-block;
+     margin: 5px 7px 5px 0;
+     padding: 7px 14px;
+     border: 1px solid #444;
+     border-radius: 20px;
+     background: #4c51bf;
+     color: white;
+     cursor: pointer;
+     transition: all 0.3s ease;
+   }
+
+   .take-quiz:hover {
+     background: #3730a3;
+   }
+
+   .quiz-generate-btn {
+     background-color: #4c51bf;
+     color: white;
+     padding: 7px 14px;
+     border: none;
+     border-radius: 20px;
+     cursor: pointer;
+     transition: all 0.3s ease;
+   }
+
+   .quiz-generate-btn:hover {
+     background-color: #3730a3;
+   }
+
+   .form-group {
+     margin-bottom: 12px;
+   }
+
+   .form-group label {
+     display: block;
+     color: #e5e5e5;
+     margin-bottom: 4px;
+     font-size: 0.9rem;
+   }
+
+   #quizForm select {
+     background-color: #2d2d39;
+     color: white;
+     padding: 8px;
+     border: 1px solid #444;
+     border-radius: 4px;
+   }
+   
+   /* Restriction notice styling */
+   .restriction-notice {
+     background-color: rgba(229, 62, 62, 0.1);
+     border: 1px solid rgba(229, 62, 62, 0.3);
+     border-radius: 8px;
+     padding: 12px;
+     margin-bottom: 20px;
+     color: #e5e5e5;
+     font-size: 0.9rem;
+   }
+   
+   .restriction-notice p {
+     margin-bottom: 10px;
+   }
+   
+   .restriction-notice .request-join-btn,
+   .restriction-notice .request-again-btn {
+     font-size: 0.85rem;
+     padding: 6px 12px;
+   }
+   
+   .restriction-notice .request-status {
+     display: inline-block;
+     margin: 5px 0;
+   }
+
+   /* Quiz styling */
+   .quiz-card {
+     background-color: #2d2d39;
+     border-radius: 8px;
+     padding: 18px;
+     margin-bottom: 20px;
+     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+     border: 1px solid #444;
+     transition: transform 0.2s ease-in-out;
+   }
+   
+   .quiz-card:hover {
+     transform: translateY(-2px);
+     box-shadow: 0 5px 12px rgba(0, 0, 0, 0.3);
+   }
+   
+   .quiz-header {
+     display: flex;
+     justify-content: space-between;
+     align-items: flex-start;
+     margin-bottom: 15px;
+     border-bottom: 1px solid #444;
+     padding-bottom: 10px;
+   }
+   
+   .quiz-title {
+     font-size: 1.2rem;
+     font-weight: 600;
+     color: #e5e5e5;
+   }
+   
+   .quiz-info {
+     font-size: 0.9rem;
+     color: #a0aec0;
+     display: flex;
+     flex-direction: column;
+     gap: 4px;
+   }
+   
+   .quiz-question {
+     font-size: 1.1rem;
+     margin-bottom: 15px;
+     color: #e5e5e5;
+     line-height: 1.4;
+   }
+   
+   .quiz-options {
+     display: flex;
+     flex-direction: column;
+     gap: 10px;
+     margin-bottom: 20px;
+   }
+   
+   .quiz-option {
+     background-color: #3f3f4f;
+     color: #e5e5e5;
+     border: 1px solid #4a4a57;
+     border-radius: 6px;
+     padding: 10px 15px;
+     cursor: pointer;
+     transition: all 0.2s ease;
+   }
+   
+   .quiz-option:hover {
+     background-color: #4a4a5a;
+     border-color: #5a5a67;
+   }
+   
+   .quiz-option.selected {
+     background-color: #4c51bf;
+     color: white;
+     border-color: #4338ca;
+   }
+   
+   .quiz-option.correct {
+     background-color: #0d9488;
+     color: white;
+     border-color: #0f766e;
+   }
+   
+   .quiz-option.incorrect {
+     background-color: #b91c1c;
+     color: white;
+     border-color: #991b1b;
+   }
+   
+   .quiz-controls {
+     display: flex;
+     justify-content: space-between;
+     align-items: center;
+     margin-top: 15px;
+   }
+   
+   .quiz-progress {
+     color: #a0aec0;
+     font-size: 0.9rem;
+   }
+   
+   .quiz-nav-btns {
+     display: flex;
+     gap: 10px;
+   }
+   
+   .quiz-nav-btn {
+     background-color: #4c51bf;
+     color: white;
+     border: none;
+     border-radius: 6px;
+     padding: 8px 16px;
+     cursor: pointer;
+     transition: all 0.2s ease;
+     font-size: 0.9rem;
+   }
+   
+   .quiz-nav-btn:hover {
+     background-color: #4338ca;
+   }
+   
+   .quiz-nav-btn:disabled {
+     background-color: #4a4a5a;
+     cursor: not-allowed;
+     opacity: 0.7;
+   }
+   
+   .quiz-results {
+     background-color: #2d2d39;
+     border-radius: 8px;
+     padding: 18px;
+     margin-top: 20px;
+     text-align: center;
+   }
+   
+   .quiz-score {
+     font-size: 1.5rem;
+     font-weight: 600;
+     margin-bottom: 10px;
+   }
+   
+   .quiz-time {
+     font-size: 0.9rem;
+     color: #a0aec0;
+     margin-bottom: 15px;
+   }
+   
+   .quiz-generate-btn {
+     background-color: #4c51bf;
+     color: white;
+     border: none;
+     border-radius: 6px;
+     padding: 10px 20px;
+     font-size: 1rem;
+     font-weight: 500;
+     cursor: pointer;
+     transition: all 0.2s ease;
+     display: block;
+     width: 100%;
+     margin-top: 10px;
+   }
+   
+   .quiz-generate-btn:hover {
+     background-color: #4338ca;
+   }
+   
+   /* Form styling */
+</style>
+
+<script>
+   function togglePollForm() {
+       const form = document.getElementById('pollForm');
+       form.style.display = form.style.display === 'none' ? 'block' : 'none';
+       // Hide quiz form when showing poll form
+       document.getElementById('quizForm').style.display = 'none';
+   }
+   
+   function toggleQuizForm() {
+       const form = document.getElementById('quizForm');
+       form.style.display = form.style.display === 'none' ? 'block' : 'none';
+       // Hide poll form when showing quiz form
+       document.getElementById('pollForm').style.display = 'none';
+   }
+   
+   function addOption() {
+       const optionsDiv = document.getElementById('pollOptions');
+       const newInput = document.createElement('input');
+       newInput.type = 'text';
+       newInput.name = 'options';
+       newInput.placeholder = 'New option';
+       newInput.style = "width: 95%; margin-bottom: 6px;";
+       optionsDiv.appendChild(newInput);
+   }
+   
+   function updateFileLabel(input) {
+       const fileName = document.getElementById('file-name');
+       if (input.files.length > 0) {
+           fileName.textContent = input.files[0].name;
+       } else {
+           fileName.textContent = '';
+       }
+   }
+   
+   function toggleEmojiPanel(button) {
+       // Close all other open panels first
+       const allPanels = document.querySelectorAll('.emoji-panel');
+       allPanels.forEach(panel => {
+           if (panel !== button.nextElementSibling) {
+               panel.style.display = 'none';
+           }
+       });
+       
+       const panel = button.nextElementSibling;
+       if (panel.style.display === 'block') {
+           panel.style.display = 'none';
+       } else {
+           panel.style.display = 'block';
+       }
+   }
+   
+   // Close emoji panels when clicking outside
+   document.addEventListener('click', function(event) {
+       if (!event.target.matches('.emoji-trigger') && !event.target.closest('.emoji-panel')) {
+           const panels = document.querySelectorAll('.emoji-panel');
+           panels.forEach(panel => {
+               panel.style.display = 'none';
+           });
+       }
+   });
+   
+   // Check URL parameters on page load to see if we should open the quiz form
+   document.addEventListener('DOMContentLoaded', function() {
+       const urlParams = new URLSearchParams(window.location.search);
+       if (urlParams.get('openQuizForm') === 'true') {
+           toggleQuizForm();
+           // Scroll to the quiz form
+           document.getElementById('quizForm').scrollIntoView({behavior: 'smooth'});
+       }
+   });
+</script>
 {% endblock content %}

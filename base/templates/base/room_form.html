@@ -42,9 +42,23 @@
               <label for="room_description">Room Description</label>
               {{form.description}}
             </div>
+            
+            <div class="form__group form__group--inline">
+              <label for="is_private">Private Room</label>
+              <div class="checkbox-wrapper">
+                {{form.is_private}}
+                <span class="checkbox-label">Require approval for users to join</span>
+              </div>
+            </div>
+            
+            <div class="form__group">
+              <label for="welcome_message">Welcome Message</label>
+              <p class="help-text">This message will be sent when a user joins your room. Use {user} and {room} as placeholders.</p>
+              {{form.welcome_message}}
+            </div>
 
             <div class="form__action">
-              <a class="btn btn--dark" href="index.html">Cancel</a>
+              <a class="btn btn--dark" href="{% url 'home' %}">Cancel</a>
               <button class="btn btn--main" type="submit">Submit</button>
             </div>
           </form>
@@ -52,4 +66,29 @@
       </div>
     </div>
   </main>
+  
+  <style>
+    .form__group--inline {
+      display: flex;
+      align-items: center;
+    }
+    
+    .checkbox-wrapper {
+      display: flex;
+      align-items: center;
+      margin-left: 20px;
+    }
+    
+    .checkbox-label {
+      margin-left: 10px;
+      font-size: 0.9rem;
+      color: var(--color-light-gray);
+    }
+    
+    .help-text {
+      font-size: 0.8rem;
+      color: var(--color-light-gray);
+      margin-bottom: 5px;
+    }
+  </style>
 {% endblock content %}
