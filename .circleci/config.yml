@@ -10,6 +10,55 @@ executors:
     docker:
       - image: cimg/python:3.10
     environment:
+      GROQ_API_KEY: << pipeline.parameters.GROQ_API_KEY >>
+
+jobs:
+  test:
+    executor: python-executor
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            source venv/bin/activate
+            pip install -r requirements.txt
+      - run:
+          name: Run Tests
+          command: |
+            source venv/bin/activate
+            python -m pytest base/tests/ --nomigrations -v
+
+  build-and-push:
+    executor: python-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+
+      - run:
+          name: Build and push Docker image
+          command: |
+            echo "Building Docker image..."
+            echo "GROQ_API_KEY length: ${#GROQ_API_KEY}"
+            docker build \
+              --build-arg GROQ_API_KEY="${GROQ_API_KEY}" \
+              --no-cache \
+              -t $DOCKERHUB_USERNAME/study-buddy:latest .
+-t study-bud
+
+workflows:
+  version: 2version: 2.1
+
+parameters:
+  GROQ_API_KEY:
+    type: string
+    default: ""
+
+executors:
+  python-executor:
+    docker:
+      - image: cimg/python:3.10
+    environment:
       GROQ_API_KEY: $GROQ_API_KEY
 
 jobs:
@@ -38,7 +87,9 @@ jobs:
           name: Build Docker image
           command: |
             echo "Building Docker image..."
-            docker build --build-arg GROQ_API_KEY=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 -t $DOCKERHUB_USERNAME/study-buddy:latest .
+            docker build \
+              --build-arg GROQ_API_KEY=$GROQ_API_KEY \
+              -t $DOCKERHUB_USERNAME/study-buddy:latest .
             echo "Docker build completed"
       - run:
           name: Login to DockerHub
@@ -50,6 +101,12 @@ jobs:
 
 workflows:
   version: 2
+  test-and-deploy:
+    jobs:
+      - test
+      - build-and-push:
+          requires:
+            - test
   test-and-deploy:
     jobs:
       - test
