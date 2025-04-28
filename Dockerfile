@@ -19,14 +19,16 @@ COPY base/models_fixed.py /app/base/models.py
 # Expose port 8000 for Django
 EXPOSE 8000
 
-# Reset migrations and create new ones
-RUN python manage.py reset_migrations base --no-backup
-RUN python manage.py makemigrations
-RUN python manage.py migrate
+# Create migrations without running them (to avoid GROQ client initialization)
+RUN python manage.py makemigrations --no-input
 
 # Create a simple entrypoint script
 RUN echo '#!/bin/bash\n\
 echo "Starting application..."\n\
+if [ -z "$GROQ_API_KEY" ]; then\n\
+    echo "Warning: GROQ_API_KEY is not set. API features will not work."\n\
+fi\n\
+python manage.py migrate\n\
 exec "$@"' > /app/entrypoint.sh && \
 chmod +x /app/entrypoint.sh
 

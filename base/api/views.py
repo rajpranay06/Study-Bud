@@ -487,9 +487,13 @@ def addEmojiReaction(request, message_id):
         return Response({"error": f"Message with id {message_id} not found"}, status=status.HTTP_404_NOT_FOUND)
 
 # Initialize GROQ client with API key from settings
-client = Groq(
-    api_key=settings.GROQ_API_KEY,
-)
+try:
+    client = Groq(
+        api_key=settings.GROQ_API_KEY,
+    )
+except Exception as e:
+    print(f"Warning: Failed to initialize GROQ client: {str(e)}")
+    client = None
 
 # Define the request body schema for GROQ chat
 groq_chat_schema = openapi.Schema(
@@ -510,6 +514,11 @@ groq_chat_schema = openapi.Schema(
 )
 @api_view(['POST'])
 def groq_chat(request):
+    if client is None:
+        return Response(
+            {"error": "GROQ API client not initialized. Please check your API key."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
     """
     Endpoint to interact with GROQ AI.
     """
@@ -575,6 +584,11 @@ quiz_generation_schema = openapi.Schema(
 )
 @api_view(['POST'])
 def generate_quiz_api(request, pk=None):
+    if client is None:
+        return Response(
+            {"error": "GROQ API client not initialized. Please check your API key."},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
     """
     Endpoint to generate a quiz using GROQ AI.
     Can be called directly or with a room ID (pk) to associate the quiz with a specific room.
