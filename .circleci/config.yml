@@ -38,8 +38,10 @@ jobs:
           name: Build Docker image
           command: |
             echo "Building Docker image..."
+            echo "GROQ_API_KEY length: ${#GROQ_API_KEY}"
             docker build \
               --build-arg GROQ_API_KEY="${GROQ_API_KEY}" \
+              --no-cache \
               -t $DOCKERHUB_USERNAME/study-buddy:latest .
             echo "Docker build completed"
       - run:
