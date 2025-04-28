@@ -1,0 +1,456 @@
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{xcolor}
+
+% Set up fancy headers and footers
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyhead[L]{Study-Bud Documentation}
+\fancyhead[R]{\thepage}
+\fancyfoot[C]{Study-Bud - A Discord-style application built with Django}
+
+% Title formatting
+\titleformat{\section}
+  {\normalfont\large\bfseries\color{blue}}
+  {\thesection}{1em}{}
+\titleformat{\subsection}
+  {\normalfont\normalsize\bfseries\color{blue}}
+  {\thesubsection}{1em}{}
+
+% Document information
+\title{\textbf{\LARGE{Study-Bud Documentation}}}
+\author{Comprehensive Project Documentation}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\begin{abstract}
+This document provides comprehensive documentation for the Study-Bud application, a Discord-style platform built with Django for seamless study group collaboration, messaging, and resource sharing. The documentation covers all aspects of the system including architecture, features, database models, API endpoints, authentication, messaging system, AI integration with GROQ, and deployment instructions.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Project Overview}
+
+Study-Bud is a Discord-style application built with Django that facilitates seamless study group collaboration, messaging, and resource sharing. It provides a platform for users to create topic-based rooms, join existing ones, communicate with other participants, conduct polls, and leverage AI assistance through GROQ integration for enhanced learning experiences.
+
+The application offers both a web interface for direct user interaction and a comprehensive REST API for programmatic access to its features, making it suitable for extending functionality through various clients.
+
+\section{System Architecture}
+
+\subsection{Core Technologies}
+\begin{itemize}
+  \item \textbf{Backend Framework}: Django 5.1.6
+  \item \textbf{API Framework}: Django REST Framework 3.14.0
+  \item \textbf{Database}: SQLite (development), configurable for production databases
+  \item \textbf{AI Integration}: GROQ API for generating quizzes and AI-based chat
+  \item \textbf{Authentication}: Django's built-in auth system with custom email-based authentication
+  \item \textbf{Documentation}: Swagger/OpenAPI via drf-yasg
+\end{itemize}
+
+\subsection{Key Components}
+\begin{itemize}
+  \item \textbf{Models}: Define the database schema
+  \item \textbf{Views}: Handle HTTP requests and business logic
+  \item \textbf{Templates}: Render HTML for the web interface
+  \item \textbf{API}: RESTful endpoints for programmatic access
+  \item \textbf{Tests}: Comprehensive test suite for all components
+\end{itemize}
+
+\section{Features}
+
+\subsection{User Management}
+\begin{itemize}
+  \item \textbf{Registration}: Email-based user registration
+  \item \textbf{Authentication}: Login with email and password
+  \item \textbf{Profile Management}: Update profile information and avatar
+  \item \textbf{Password Reset}: Email-based password recovery flow
+\end{itemize}
+
+\subsection{Rooms}
+\begin{itemize}
+  \item \textbf{Room Creation}: Create public or private study rooms
+  \item \textbf{Room Management}: Update/delete rooms (host only)
+  \item \textbf{Topics}: Organize rooms by topics
+  \item \textbf{Participant Management}: Join rooms, view participants
+\end{itemize}
+
+\subsection{Messaging}
+\begin{itemize}
+  \item \textbf{Real-time Chat}: Send messages in rooms
+  \item \textbf{File Sharing}: Upload and share files with room participants
+  \item \textbf{Message Reactions}: React to messages with emojis
+  \item \textbf{Bot Messages}: Distinguish system-generated messages
+\end{itemize}
+
+\subsection{Polls and Interactions}
+\begin{itemize}
+  \item \textbf{Poll Creation}: Create polls within rooms
+  \item \textbf{Voting}: Vote on poll options
+  \item \textbf{Results Viewing}: See real-time poll results
+\end{itemize}
+
+\subsection{Private Rooms}
+\begin{itemize}
+  \item \textbf{Access Control}: Private rooms require approval to join
+  \item \textbf{Join Requests}: Request to join private rooms
+  \item \textbf{Request Management}: Approve/reject join requests
+\end{itemize}
+
+\subsection{AI Integration}
+\begin{itemize}
+  \item \textbf{GROQ Chat}: Interact with AI for study assistance
+  \item \textbf{Quiz Generation}: Generate topic-based quizzes
+  \item \textbf{Model Selection}: Choose different GROQ models for AI responses
+\end{itemize}
+
+\section{Database Models}
+
+\subsection{User}
+Extends Django's AbstractUser for authentication with additional fields:
+\begin{itemize}
+  \item \texttt{name}: User's display name
+  \item \texttt{email}: Unique email for authentication
+  \item \texttt{bio}: User biography/description
+  \item \texttt{avatar}: Profile image
+\end{itemize}
+
+\subsection{Topic}
+Represents study room categories:
+\begin{itemize}
+  \item \texttt{name}: Topic name
+\end{itemize}
+
+\subsection{Room}
+Study rooms where participants interact:
+\begin{itemize}
+  \item \texttt{host}: User who created the room (ForeignKey to User)
+  \item \texttt{topic}: Room topic (ForeignKey to Topic)
+  \item \texttt{name}: Room name
+  \item \texttt{description}: Room description
+  \item \texttt{welcome\_message}: Customizable welcome message for new participants
+  \item \texttt{is\_private}: Whether the room requires join approval
+  \item \texttt{participants}: Users in the room (ManyToMany to User)
+  \item \texttt{updated}, \texttt{created}: Timestamps
+\end{itemize}
+
+\subsection{Message}
+Chat messages within rooms:
+\begin{itemize}
+  \item \texttt{user}: Message sender (ForeignKey to User)
+  \item \texttt{room}: Associated room (ForeignKey to Room)
+  \item \texttt{body}: Message content
+  \item \texttt{file}: Optional file attachment
+  \item \texttt{is\_image}: Whether the file is an image
+  \item \texttt{is\_bot}: Whether the message is from a bot
+  \item \texttt{updated}, \texttt{created}: Timestamps
+\end{itemize}
+
+\subsection{Poll}
+Polls created within rooms:
+\begin{itemize}
+  \item \texttt{room}: Associated room (ForeignKey to Room)
+  \item \texttt{question}: Poll question
+  \item \texttt{created\_by}: Poll creator (ForeignKey to User)
+  \item \texttt{created\_at}: Timestamp
+\end{itemize}
+
+\subsection{PollOption}
+Options for polls:
+\begin{itemize}
+  \item \texttt{poll}: Associated poll (ForeignKey to Poll)
+  \item \texttt{option\_text}: Option text
+  \item \texttt{votes}: Users who voted for this option (ManyToMany to User)
+\end{itemize}
+
+\subsection{EmojiReaction}
+Emoji reactions to messages:
+\begin{itemize}
+  \item \texttt{message}: Associated message (ForeignKey to Message)
+  \item \texttt{user}: User who reacted (ForeignKey to User)
+  \item \texttt{emoji}: Unicode emoji representation
+  \item \texttt{created\_at}: Timestamp
+\end{itemize}
+
+\subsection{RoomJoinRequest}
+Requests to join private rooms:
+\begin{itemize}
+  \item \texttt{room}: Room being requested (ForeignKey to Room)
+  \item \texttt{user}: User requesting to join (ForeignKey to User)
+  \item \texttt{created\_at}: Request timestamp
+  \item \texttt{status}: Request status ('pending', 'approved', 'rejected')
+\end{itemize}
+
+\section{API Endpoints}
+
+\subsection{Documentation}
+\begin{itemize}
+  \item \texttt{GET /api/}: List all available API routes
+\end{itemize}
+
+\subsection{Room Endpoints}
+\begin{itemize}
+  \item \texttt{GET /api/rooms/}: List all rooms
+  \item \texttt{GET /api/rooms/:id/}: Get room details
+  \item \texttt{POST /api/rooms/create/}: Create a new room
+  \item \texttt{PUT /api/rooms/:id/update/}: Update a room
+  \item \texttt{DELETE /api/rooms/:id/delete/}: Delete a room
+  \item \texttt{GET /api/rooms/:id/messages/}: Get room messages
+  \item \texttt{GET /api/rooms/:id/polls/}: Get room polls
+\end{itemize}
+
+\subsection{User Endpoints}
+\begin{itemize}
+  \item \texttt{GET /api/users/}: List all users
+  \item \texttt{GET /api/users/:id/}: Get user details
+\end{itemize}
+
+\subsection{Topic Endpoints}
+\begin{itemize}
+  \item \texttt{GET /api/topics/}: List all topics
+\end{itemize}
+
+\subsection{Poll Endpoints}
+\begin{itemize}
+  \item \texttt{POST /api/polls/:id/vote/:option\_id/}: Vote on a poll option
+\end{itemize}
+
+\subsection{Message Endpoints}
+\begin{itemize}
+  \item \texttt{POST /api/messages/:id/react/}: Add emoji reaction to a message
+\end{itemize}
+
+\subsection{Join Request Endpoints}
+\begin{itemize}
+  \item \texttt{POST /api/rooms/:id/join-request/}: Request to join a private room
+  \item \texttt{GET /api/rooms/:id/join-requests/}: Get join requests for a room
+  \item \texttt{PUT /api/join-requests/:id/}: Process a join request
+\end{itemize}
+
+\subsection{GROQ AI Endpoints}
+\begin{itemize}
+  \item \texttt{POST /api/groq-chat/}: Chat with GROQ AI
+  \item \texttt{POST /api/generate-quiz/}: Generate a quiz (general)
+  \item \texttt{POST /api/rooms/:id/generate-quiz/}: Generate a room-specific quiz
+\end{itemize}
+
+\section{Authentication}
+
+\subsection{Authentication Methods}
+\begin{itemize}
+  \item \textbf{Username/Email and Password}: Standard form-based authentication
+  \item \textbf{Token-based API Authentication}: JWT tokens for API access
+\end{itemize}
+
+\subsection{Password Policy}
+\begin{itemize}
+  \item Minimum length: 8 characters
+  \item Mixed case, numbers, and special characters
+  \item Common password protection
+\end{itemize}
+
+\subsection{Account Recovery}
+\begin{itemize}
+  \item Email-based password reset flow
+  \item Confirmation links with secure tokens
+\end{itemize}
+
+\section{Messaging System}
+
+\subsection{Features}
+\begin{itemize}
+  \item \textbf{Text Messages}: Standard text communication
+  \item \textbf{File Attachments}: Share files within messages
+  \item \textbf{Image Preview}: Automatic display of image attachments
+  \item \textbf{Emoji Reactions}: React to messages with emojis
+  \item \textbf{Message Deletion}: Delete your own messages
+\end{itemize}
+
+\subsection{Implementation}
+\begin{itemize}
+  \item Messages stored in database with file paths
+  \item Files stored in configured media storage
+  \item Real-time display through page refreshes (future: websockets)
+\end{itemize}
+
+\section{AI Integration (GROQ)}
+
+\subsection{GROQ Chat}
+\begin{itemize}
+  \item \textbf{Endpoint}: \texttt{/api/groq-chat/}
+  \item \textbf{Purpose}: General AI assistance for study topics
+  \item \textbf{Models}: Configurable GROQ models including Llama 4
+\end{itemize}
+
+\subsection{Quiz Generation}
+\begin{itemize}
+  \item \textbf{Endpoint}: \texttt{/api/generate-quiz/} or room-specific endpoint
+  \item \textbf{Features}:
+  \begin{itemize}
+    \item Topic-based quiz generation
+    \item Difficulty levels (easy, medium, hard)
+    \item Multiple-choice questions with explanations
+    \item Recommended completion time
+  \end{itemize}
+\end{itemize}
+
+\subsection{Configuration}
+\begin{itemize}
+  \item GROQ API key stored in environment variables
+  \item Model selection available through API
+\end{itemize}
+
+\section{Private Rooms \& Access Control}
+
+\subsection{Access Levels}
+\begin{itemize}
+  \item \textbf{Public Rooms}: Anyone can join
+  \item \textbf{Private Rooms}: Join requests must be approved
+\end{itemize}
+
+\subsection{Join Request Flow}
+\begin{enumerate}
+  \item User requests to join a private room
+  \item Room host receives notification
+  \item Host approves or rejects the request
+  \item On approval, user is added to room participants
+\end{enumerate}
+
+\subsection{Implementation}
+\begin{itemize}
+  \item \texttt{is\_private} flag on Room model
+  \item RoomJoinRequest model tracks requests
+  \item Status tracking (pending, approved, rejected)
+\end{itemize}
+
+\section{Quiz Generation System}
+
+\subsection{Features}
+\begin{itemize}
+  \item \textbf{AI-Generated Quizzes}: Created using GROQ API
+  \item \textbf{Topic Customization}: Quizzes based on room topics or custom topics
+  \item \textbf{Difficulty Levels}: Easy, medium, and hard options
+  \item \textbf{Question Types}: Multiple-choice with explanations
+  \item \textbf{Timed Quizzes}: Recommended completion times
+\end{itemize}
+
+\subsection{Implementation}
+\begin{itemize}
+  \item API endpoints for quiz generation
+  \item JSON structure for quiz data
+  \item Frontend rendering of quiz questions and options
+\end{itemize}
+
+\section{Testing}
+
+\subsection{Test Types}
+\begin{itemize}
+  \item \textbf{Unit Tests}: Individual components
+  \item \textbf{Integration Tests}: Component interactions
+  \item \textbf{API Tests}: API endpoint functionality
+  \item \textbf{Model Tests}: Database model behavior
+\end{itemize}
+
+\subsection{Test Files}
+\begin{itemize}
+  \item \texttt{test\_api.py}: Tests for API endpoints
+  \item \texttt{test\_auth.py}: Authentication system tests
+  \item \texttt{test\_landing\_page.py}: Homepage functionality
+  \item \texttt{test\_forms.py}: Form validation
+  \item \texttt{test\_views.py}: View functionality
+  \item \texttt{test\_models.py}: Model behavior
+  \item \texttt{test\_groq\_integration.py}: AI integration tests
+\end{itemize}
+
+\subsection{Test Execution}
+\begin{itemize}
+  \item Run all tests: \texttt{python manage.py test}
+  \item Run specific tests: \texttt{python manage.py test base.tests.test\_api}
+\end{itemize}
+
+\section{Deployment}
+
+\subsection{Docker Support}
+\begin{itemize}
+  \item Dockerized application for easy deployment
+  \item Environment variable configuration
+  \item Database migration handling
+\end{itemize}
+
+\subsection{Configuration}
+\begin{itemize}
+  \item Environment variables for sensitive data
+  \item GROQ API key configuration
+  \item Static file serving
+\end{itemize}
+
+\section{Environment Setup}
+
+\subsection{Development Environment}
+\begin{enumerate}
+  \item Clone the repository
+  \item Create a virtual environment: \texttt{python -m venv venv}
+  \item Activate the environment:
+  \begin{itemize}
+    \item Windows: \texttt{venv\textbackslash Scripts\textbackslash activate}
+    \item Unix/Mac: \texttt{source venv/bin/activate}
+  \end{itemize}
+  \item Install dependencies: \texttt{pip install -r requirements.txt}
+  \item Create \texttt{.env} file with:
+  \begin{verbatim}
+  GROQ_API_KEY=your_groq_api_key_here
+  \end{verbatim}
+  \item Run migrations: \texttt{python manage.py migrate}
+  \item Create superuser: \texttt{python manage.py createsuperuser}
+  \item Run server: \texttt{python manage.py runserver}
+\end{enumerate}
+
+\subsection{Docker Environment}
+\begin{enumerate}
+  \item Build the Docker image:
+  \begin{verbatim}
+  docker build --build-arg GROQ_API_KEY=your_api_key -t study-bud:latest .
+  \end{verbatim}
+  \item Run the container:
+  \begin{verbatim}
+  docker run -p 8000:8000 study-bud:latest
+  \end{verbatim}
+\end{enumerate}
+
+\section{Technical Requirements}
+
+\subsection{Core Dependencies}
+\begin{itemize}
+  \item Django 5.1.6
+  \item Django REST Framework 3.14.0
+  \item Django CORS Headers 4.7.0
+  \item DRF Yasg 1.21.8 (Swagger)
+  \item GROQ 0.23.1
+  \item Python 3.10+
+\end{itemize}
+
+\subsection{Development Tools}
+\begin{itemize}
+  \item pytest 8.3.5
+  \item pytest-django 4.10.0
+  \item python-dotenv 1.0.1
+\end{itemize}
+
+\subsection{Full Requirements}
+See requirements.txt for a complete list of dependencies.
+
+\end{document} 
