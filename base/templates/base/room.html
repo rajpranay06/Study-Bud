@@ -4,12 +4,43 @@
 
 <main class="profile-page layout layout--2">
    <div class="room-container">
+      <!-- Mobile Actions Dropdown -->
+      <div class="mobile-actions-dropdown">
+         <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+               <line x1="3" y1="12" x2="21" y2="12"></line>
+               <line x1="3" y1="6" x2="21" y2="6"></line>
+               <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+         </button>
+         <div id="mobileMenu" class="mobile-menu-content">
+            {% if request.user.is_authenticated and request.user == room.host or request.user in room.participants.all %}
+               <button onclick="togglePollForm()" class="mobile-menu-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                     <circle cx="12" cy="12" r="10"></circle>
+                     <line x1="12" y1="8" x2="12" y2="16"></line>
+                     <line x1="8" y1="12" x2="16" y2="12"></line>
+                  </svg>
+                  New Poll
+               </button>
+               <button onclick="toggleQuizForm()" class="mobile-menu-item">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                     <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                     <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
+                  Take Quiz
+               </button>
+            {% endif %}
+         </div>
+      </div>
+
       <!-- Polls Section (Left) -->
       <div class="polls-section scroll">
          <h3 class="participants__top">Active Polls
             {% if request.user.is_authenticated and request.user == room.host or request.user in room.participants.all %}
-            <button onclick="togglePollForm()" style="margin-left: 10px;" class='add-poll'>+ New</button>
-            <button onclick="toggleQuizForm()" style="margin-left: 10px;" class='take-quiz'>Take Quiz</button>
+            <button onclick="togglePollForm()" class='add-poll desktop-only'>+ New</button>
+            <button onclick="toggleQuizForm()" class='take-quiz desktop-only'>Take Quiz</button>
             {% endif %}
          </h3>
          {% if request.user.is_authenticated and request.user != room.host and request.user not in room.participants.all %}
@@ -1340,74 +1371,127 @@
 </style>
 
 <script>
-   function togglePollForm() {
-       const form = document.getElementById('pollForm');
-       form.style.display = form.style.display === 'none' ? 'block' : 'none';
-       // Hide quiz form when showing poll form
-       document.getElementById('quizForm').style.display = 'none';
-   }
-   
-   function toggleQuizForm() {
-       const form = document.getElementById('quizForm');
-       form.style.display = form.style.display === 'none' ? 'block' : 'none';
-       // Hide poll form when showing quiz form
-       document.getElementById('pollForm').style.display = 'none';
-   }
-   
-   function addOption() {
-       const optionsDiv = document.getElementById('pollOptions');
-       const newInput = document.createElement('input');
-       newInput.type = 'text';
-       newInput.name = 'options';
-       newInput.placeholder = 'New option';
-       newInput.style = "width: 95%; margin-bottom: 6px;";
-       optionsDiv.appendChild(newInput);
-   }
-   
-   function updateFileLabel(input) {
-       const fileName = document.getElementById('file-name');
-       if (input.files.length > 0) {
-           fileName.textContent = input.files[0].name;
-       } else {
-           fileName.textContent = '';
-       }
-   }
-   
-   function toggleEmojiPanel(button) {
-       // Close all other open panels first
-       const allPanels = document.querySelectorAll('.emoji-panel');
-       allPanels.forEach(panel => {
-           if (panel !== button.nextElementSibling) {
-               panel.style.display = 'none';
-           }
-       });
-       
-       const panel = button.nextElementSibling;
-       if (panel.style.display === 'block') {
-           panel.style.display = 'none';
-       } else {
-           panel.style.display = 'block';
-       }
-   }
-   
-   // Close emoji panels when clicking outside
-   document.addEventListener('click', function(event) {
-       if (!event.target.matches('.emoji-trigger') && !event.target.closest('.emoji-panel')) {
-           const panels = document.querySelectorAll('.emoji-panel');
-           panels.forEach(panel => {
-               panel.style.display = 'none';
-           });
-       }
-   });
-   
-   // Check URL parameters on page load to see if we should open the quiz form
-   document.addEventListener('DOMContentLoaded', function() {
-       const urlParams = new URLSearchParams(window.location.search);
-       if (urlParams.get('openQuizForm') === 'true') {
-           toggleQuizForm();
-           // Scroll to the quiz form
-           document.getElementById('quizForm').scrollIntoView({behavior: 'smooth'});
-       }
-   });
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile menu functionality
+    const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    
+    if (mobileMenuBtn && mobileMenu) {
+        mobileMenuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            mobileMenu.classList.toggle('show');
+        });
+    }
+
+    // Close mobile menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (mobileMenu && !mobileMenu.contains(event.target) && 
+            !event.target.closest('.mobile-menu-btn')) {
+            mobileMenu.classList.remove('show');
+        }
+    });
+
+    // Poll form toggle
+    const pollForm = document.getElementById('pollForm');
+    const quizForm = document.getElementById('quizForm');
+    
+    function togglePollForm() {
+        if (pollForm) {
+            pollForm.style.display = pollForm.style.display === 'none' ? 'block' : 'none';
+            if (quizForm) {
+                quizForm.style.display = 'none';
+            }
+            if (mobileMenu) {
+                mobileMenu.classList.remove('show');
+            }
+        }
+    }
+    
+    function toggleQuizForm() {
+        if (quizForm) {
+            quizForm.style.display = quizForm.style.display === 'none' ? 'block' : 'none';
+            if (pollForm) {
+                pollForm.style.display = 'none';
+            }
+            if (mobileMenu) {
+                mobileMenu.classList.remove('show');
+            }
+        }
+    }
+
+    // Add event listeners to all poll form toggle buttons
+    document.querySelectorAll('[onclick="togglePollForm()"]').forEach(button => {
+        button.onclick = function(e) {
+            e.preventDefault();
+            togglePollForm();
+        };
+    });
+
+    // Add event listeners to all quiz form toggle buttons
+    document.querySelectorAll('[onclick="toggleQuizForm()"]').forEach(button => {
+        button.onclick = function(e) {
+            e.preventDefault();
+            toggleQuizForm();
+        };
+    });
+
+    // Add option functionality
+    function addOption() {
+        const optionsDiv = document.getElementById('pollOptions');
+        if (optionsDiv) {
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.name = 'options';
+            newInput.placeholder = 'New option';
+            newInput.style = "width: 95%; margin-bottom: 6px;";
+            optionsDiv.appendChild(newInput);
+        }
+    }
+
+    // File upload functionality
+    function updateFileLabel(input) {
+        const fileName = document.getElementById('file-name');
+        if (fileName && input.files.length > 0) {
+            fileName.textContent = input.files[0].name;
+        } else if (fileName) {
+            fileName.textContent = '';
+        }
+    }
+
+    // Emoji panel functionality
+    function toggleEmojiPanel(button) {
+        const allPanels = document.querySelectorAll('.emoji-panel');
+        allPanels.forEach(panel => {
+            if (panel !== button.nextElementSibling) {
+                panel.style.display = 'none';
+            }
+        });
+        
+        const panel = button.nextElementSibling;
+        if (panel) {
+            panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+        }
+    }
+
+    // Close emoji panels when clicking outside
+    document.addEventListener('click', function(event) {
+        if (!event.target.matches('.emoji-trigger') && !event.target.closest('.emoji-panel')) {
+            const panels = document.querySelectorAll('.emoji-panel');
+            panels.forEach(panel => {
+                panel.style.display = 'none';
+            });
+        }
+    });
+
+    // Check URL parameters on page load
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openQuizForm') === 'true') {
+        toggleQuizForm();
+        const quizForm = document.getElementById('quizForm');
+        if (quizForm) {
+            quizForm.scrollIntoView({behavior: 'smooth'});
+        }
+    }
+});
 </script>
 {% endblock content %}
