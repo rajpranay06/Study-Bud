@@ -30,14 +30,39 @@
                           </div>
                       {% endfor %}
                         <div class="form__action">
-                            <a href="{% url 'home' %}" class="btn btn--dark" href="index.html">Cancel</a>
+                            <a href="{% url 'home' %}" class="btn btn--dark">Cancel</a>
                             <button class="btn btn--main" type="submit">Update</button>
                         </div>
                     </form>
+                    <div class="password-change-link">
+                        <a href="{% url 'change-password-page' %}" class="btn btn--secondary btn-full">
+                            Change Password
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-      </div>
     </main>
 
 {% endblock content %}
+
+<style>
+    .password-change-link {
+        margin-top: 1.5rem;
+        text-align: center;
+    }
+    
+    .btn-full {
+        width: 100%;
+        padding: 0.8rem;
+    }
+    
+    .btn--secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .btn--secondary:hover {
+        background-color: #5a6268;
+    }
+</style>

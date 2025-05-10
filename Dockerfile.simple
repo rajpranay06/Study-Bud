@@ -1,0 +1,36 @@
+# Use an official Python runtime as a parent image
+FROM python:3.10-slim
+
+# Accept build arguments
+ARG GROQ_API_KEY
+
+# Set environment variables
+ENV GROQ_API_KEY=$GROQ_API_KEY
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the fixed models.py file first
+COPY base/models_fixed.py /tmp/models_fixed.py
+
+# Copy the rest of the application
+COPY . /app/
+
+# Replace the models.py file with our fixed version
+RUN mv /tmp/models_fixed.py /app/base/models.py
+
+# Install dependencies from requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Remove existing migration files
+RUN find /app/base/migrations -name "*.py" -not -name "__init__.py" -delete
+
+# Make fresh migrations with the fixed models
+RUN python manage.py makemigrations
+RUN python manage.py migrate
+
+# Expose port 8000 for Django
+EXPOSE 8000
+
+# Start the Django development server on port 8000
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"] 

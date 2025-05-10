@@ -67,3 +67,83 @@ if (photoInput)
 // Scroll to Bottom
 const conversationThread = document.querySelector(".room__box");
 if (conversationThread) conversationThread.scrollTop = conversationThread.scrollHeight;
+
+// Password strength meter functionality
+document.addEventListener('DOMContentLoaded', function() {
+  const passwordField = document.getElementById('id_password1') || document.getElementById('password');
+  
+  if (passwordField) {
+    // Create password strength meter elements
+    const meterContainer = document.createElement('div');
+    meterContainer.className = 'password-strength-meter';
+    
+    const meterFill = document.createElement('div');
+    meterFill.className = 'password-strength-meter-fill';
+    
+    const strengthText = document.createElement('small');
+    strengthText.className = 'form__help password-strength-text';
+    
+    meterContainer.appendChild(meterFill);
+    
+    // Insert elements after password field
+    passwordField.parentNode.insertBefore(meterContainer, passwordField.nextSibling);
+    passwordField.parentNode.insertBefore(strengthText, meterContainer.nextSibling);
+    
+    // Update password strength on input
+    passwordField.addEventListener('input', function() {
+      const password = this.value;
+      const strength = calculatePasswordStrength(password);
+      
+      // Update meter and text
+      meterContainer.className = 'password-strength-meter strength-' + strength.level;
+      strengthText.textContent = 'Password strength: ' + strength.text;
+    });
+  }
+  
+  // Password confirmation validation
+  const passwordConfirmField = document.getElementById('id_password2');
+  if (passwordConfirmField && passwordField) {
+    passwordConfirmField.addEventListener('input', function() {
+      if (this.value === passwordField.value) {
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+      } else {
+        this.classList.remove('is-valid');
+        this.classList.add('is-invalid');
+      }
+    });
+  }
+});
+
+// Calculate password strength
+function calculatePasswordStrength(password) {
+  let strength = 0;
+  
+  // Length check
+  if (password.length >= 8) strength += 1;
+  if (password.length >= 12) strength += 1;
+  
+  // Character type checks
+  if (/[A-Z]/.test(password)) strength += 1;
+  if (/[a-z]/.test(password)) strength += 1;
+  if (/[0-9]/.test(password)) strength += 1;
+  if (/[^A-Za-z0-9]/.test(password)) strength += 1;
+  
+  // Determine strength level
+  let level, text;
+  if (strength <= 2) {
+    level = 'weak';
+    text = 'Weak';
+  } else if (strength <= 4) {
+    level = 'medium';
+    text = 'Medium';
+  } else if (strength <= 5) {
+    level = 'strong';
+    text = 'Strong';
+  } else {
+    level = 'very-strong';
+    text = 'Very Strong';
+  }
+  
+  return { level, text };
+}

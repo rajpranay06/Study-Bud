@@ -18,9 +18,17 @@
             <form class="form" action="" method="POST">
               {% csrf_token %}
 
+              {% if messages %}
+              <div class="alert alert--error">
+                {% for message in messages %}
+                  <p>{{message}}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
+
               <div class="form__group form__group">
-                <label for="room_name">Email</label>
-                <input id="username" name="email" type="text" placeholder="e.g. dennis_ivy" />
+                <label for="email">Email or Username</label>
+                <input id="email" name="email" type="text" placeholder="e.g. john@example.com or john_doe" />
               </div>
               <div class="form__group">
                 <label for="password">Password</label>
@@ -30,6 +38,13 @@
                   type="password"
                   placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
                 />
+              </div>
+
+              <div class="form__group">
+                <div class="checkbox-container">
+                  <input type="checkbox" id="remember_me" name="remember_me" />
+                  <label for="remember_me">Remember me</label>
+                </div>
               </div>
 
               <button class="btn btn--main" type="submit">
@@ -57,6 +72,10 @@
               <p>Haven't signed up yet?</p>
               <a href="{% url 'register' %}" class="btn btn--link">Sign Up</a>
             </div>
+            
+            {% comment %} <div class="auth__alternative">
+              <a href="{% url 'password_reset' %}" class="btn btn--link">Forgot Password?</a>
+            </div> {% endcomment %}
           </div>
         </div>
       </div>
@@ -74,10 +93,24 @@
             <form class="form" action="" method="POST">
               {% csrf_token %}
 
+              {% if messages %}
+              <div class="alert alert--error">
+                {% for message in messages %}
+                  <p>{{message}}</p>
+                {% endfor %}
+              </div>
+              {% endif %}
+
               {% for field in form %}
               <div class="form__group form__group">
-                <label for="room_name">{{field.label}}</label>
+                <label for="{{field.id_for_label}}">{{field.label}}</label>
                 {{field}}
+                {% if field.help_text %}
+                <small class="form__help">{{field.help_text}}</small>
+                {% endif %}
+                {% for error in field.errors %}
+                <small class="form__error">{{error}}</small>
+                {% endfor %}
               </div>
               {% endfor %}
               
@@ -104,12 +137,58 @@
             </form>
 
             <div class="auth__action">
-              <p>Already signed up</p>
-              <a href="{% url 'login' %}" class="btn btn--link">Sign Up</a>
+              <p>Already signed up?</p>
+              <a href="{% url 'login' %}" class="btn btn--link">Login</a>
             </div>
           </div>
         </div>
       </div>
       {% endif %}
     </main>
+
+    <style>
+      .alert {
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+      
+      .alert--error {
+        background-color: rgba(229, 62, 62, 0.1);
+        border: 1px solid rgba(229, 62, 62, 0.3);
+        color: #e53e3e;
+      }
+      
+      .form__error {
+        color: #e53e3e;
+        font-size: 0.8rem;
+        display: block;
+        margin-top: 4px;
+      }
+      
+      .form__help {
+        color: #a0aec0;
+        font-size: 0.8rem;
+        display: block;
+        margin-top: 4px;
+      }
+      
+      .checkbox-container {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      
+      .checkbox-container input[type="checkbox"] {
+        width: auto;
+        height: auto;
+        margin: 0;
+      }
+      
+      .auth__alternative {
+        text-align: center;
+        margin-top: 10px;
+      }
+    </style>
 {% endblock content %}
